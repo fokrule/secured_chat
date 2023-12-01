@@ -95,7 +95,7 @@ int main()
 		// gmp_printf("Successfully read DH params:\nq = %Zd\np = %Zd\ng = %Zd\n",q,p,g);
 		printf("Successfully read DH params.\n");
 	}
-	// testDH();
-	test3DH();
+	testDH();
+	//test3DH();
 	return 0;
 }
