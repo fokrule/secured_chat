@@ -59,13 +59,13 @@ void handshakeProtocol() {
     //return ;
 }
 
-int main() {
-  if (init("params") == 0) {
-        printf("Successfully read DH params.\n");
-    }
+//int main() {
+  //if (init("params") == 0) {
+    //    printf("Successfully read DH params.\n");
+    //}
 
-    handshakeProtocol();
+    //handshakeProtocol();
 
-    return 0;
-}
+    //return 0;
+//}
 
