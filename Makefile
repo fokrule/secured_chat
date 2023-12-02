@@ -3,6 +3,8 @@ OBJECTS := $(SOURCES:.c=.o)
 OBJECTS := $(OBJECTS:.cpp=.o)
 HEADERS := $(wildcard *.h include/*.h)
 
+SOURCES += handshake.c
+
 COMMON   := -O2 -Wall -Wformat=2 -Wno-format-nonliteral -march=native -DNDEBUG
 CFLAGS   := $(CFLAGS) $(COMMON)
 CXXFLAGS := $(CXXFLAGS) $(COMMON)
@@ -32,7 +34,7 @@ debug : all
 .PHONY : debug
 # }}}
 
-chat : $(IMPL) dh.o keys.o
+chat : $(IMPL) dh.o keys.o handshake.o
 	$(LD) $(LDFLAGS) -o $@ $^ $(LDADD)
 
 dh-example : dh-example.o dh.o

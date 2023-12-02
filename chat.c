@@ -9,6 +9,7 @@
 #include <getopt.h>
 #include "dh.h"
 #include "keys.h"
+#include "handshake.h"
 
 #include <stdio.h>
 #include <gmp.h>
@@ -72,7 +73,8 @@ int generateKeyPair(struct dhKey* k) {
 
     bio = BIO_new(BIO_s_mem());
     PEM_write_bio_PUBKEY(bio, pkey);
-    BIO_get_mem_data(bio, &k->PK, NULL);
+    //BIO_get_mem_data(bio, &k->PK, NULL); replaced to run on my ssl version
+    BIO_ctrl(bio, BIO_CTRL_INFO, 0, (char*)&k->SK);
     BIO_free_all(bio);
 
     EVP_PKEY_free(pkey);

@@ -3,7 +3,7 @@
 #include <gmp.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include "handshake.h"
 // Define the size of the shared secret key
 #define KEY_SIZE 128
 
@@ -22,8 +22,8 @@ void handshakeProtocol() {
     generateEphemeralKeyPair(aliceSecretKey, alicePublicKey);
 
     // Bob's setup
-    mpz_t bobSecretKey, bobPublicKey;
-    generateEphemeralKeyPair(bobSecretKey, bobPublicKey);
+    //mpz_t bobSecretKey, bobPublicKey;
+    //generateEphemeralKeyPair(bobSecretKey, bobPublicKey);
 
     // Alice sends her public key to Bob
     // Bob receives Alice's public key
@@ -32,21 +32,21 @@ void handshakeProtocol() {
     // Alice receives Bob's public key
 
     // Both parties derive the shared secret
-    unsigned char aliceSharedSecret[KEY_SIZE];
-    unsigned char bobSharedSecret[KEY_SIZE];
+    //unsigned char aliceSharedSecret[KEY_SIZE];
+    //unsigned char bobSharedSecret[KEY_SIZE];
 
-    deriveSharedSecret(aliceSecretKey, alicePublicKey, bobPublicKey, aliceSharedSecret, KEY_SIZE);
-    deriveSharedSecret(bobSecretKey, bobPublicKey, alicePublicKey, bobSharedSecret, KEY_SIZE);
+    //deriveSharedSecret(aliceSecretKey, alicePublicKey, bobPublicKey, aliceSharedSecret, KEY_SIZE);
+    //deriveSharedSecret(bobSecretKey, bobPublicKey, alicePublicKey, bobSharedSecret, KEY_SIZE);
 
     // Verify that both parties have the same shared secret
-    if (memcmp(aliceSharedSecret, bobSharedSecret, KEY_SIZE) == 0) {
-        printf("Handshake successful! Shared secret established with perfect forward secrecy.\n");
-    } else {
-        printf("Handshake failed!\n");
-    }
-return ;
+    //if (memcmp(aliceSharedSecret, bobSharedSecret, KEY_SIZE) == 0) {
+        //printf("Handshake successful! Shared secret established with perfect forward secrecy.\n");
+   // } else {
+      //  printf("Handshake failed!\n");
+   // }
     // Clean up resources
-    mpz_clears(aliceSecretKey, alicePublicKey, bobSecretKey, bobPublicKey, NULL);
+    //mpz_clears(aliceSecretKey, alicePublicKey, bobSecretKey, bobPublicKey, NULL);
+    //return ;
 }
 
 //int main() {

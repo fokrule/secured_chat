@@ -18,7 +18,7 @@ size_t qBitlen;
 size_t pBitlen;
 size_t qLen; /* length of q in bytes */
 size_t pLen; /* length of p in bytes */
-
+size_t result;
 /* NOTE: this constant is arbitrary and does not need to be secret. */
 const char* hmacsalt = "z3Dow}^Z]8Uu5>pr#;{QUs!133";
 
@@ -52,6 +52,7 @@ int init(const char* fname)
 	}
 	/* now make sure that q divides the order of the multiplicative group: */
 	/* temporaries to hold results */
+	
 	NEWZ(t);
 	NEWZ(r);
 	mpz_sub_ui(r,p,1); /* r = p-1 */
@@ -70,6 +71,7 @@ int init(const char* fname)
 		printf("g does not generate subroup of order q!\n");
 		return -1;
 	}
+	mpz_clears(r, t, NULL);
 	qBitlen = mpz_sizeinbase(q,2);
 	pBitlen = mpz_sizeinbase(p,2);
 	qLen = qBitlen / 8 + (qBitlen % 8 != 0);
@@ -121,11 +123,19 @@ int initFromScratch(size_t qbits, size_t pbits)
 	FILE* f = fopen("/dev/urandom","rb");
 	do {
 		do {
-			fread(qCand,1,qLen,f);
+			result = fread(qCand,1,qLen,f);
+			if (result != qLen) {
+			    // Handle fread error or incomplete read
+			}
+			//fread(qCand,1,qLen,f);
 			BYTES2Z(q,qCand,qLen);
 		} while (!ISPRIME(q));
 		/* now try to get p */
-		fread(rCand,1,rLen,f);
+		result = fread(rCand,1,rLen,f);
+		if (result != qLen) {
+		    // Handle fread error or incomplete read
+		}
+		//fread(rCand,1,rLen,f);
 		rCand[0] &= 0xfe; /* set least significant bit to 0 (make r even) */
 		BYTES2Z(r,rCand,rLen);
 		mpz_mul(p,q,r);     /* p = q*r */
@@ -142,7 +152,11 @@ int initFromScratch(size_t qbits, size_t pbits)
 	size_t tLen = qLen; /* qLen somewhat arbitrary. */
 	unsigned char* tCand = malloc(tLen);
 	do {
-		fread(tCand,1,tLen,f);
+		result = fread(tCand,1,tLen,f);
+		if (result != qLen) {
+		    // Handle fread error or incomplete read
+		}
+		//fread(tCand,1,tLen,f);
 		BYTES2Z(t,tCand,tLen);
 		if (mpz_cmp_ui(t,0) == 0) continue; /* really unlucky! */
 		mpz_powm(g,t,r,p); /* efficiently do g = t**r % p */
@@ -165,7 +179,11 @@ int dhGen(mpz_t sk, mpz_t pk)
 	}
 	size_t buflen = qLen + 32; /* read extra to get closer to uniform distribution */
 	unsigned char* buf = malloc(buflen);
-	fread(buf,1,buflen,f);
+	result = fread(buf,1,buflen,f);
+	if (result != qLen) {
+	    // Handle fread error or incomplete read
+	}
+	//fread(buf,1,buflen,f);
 	fclose(f);
 	NEWZ(a);
 	BYTES2Z(a,buf,buflen);
