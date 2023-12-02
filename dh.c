@@ -123,11 +123,12 @@ int initFromScratch(size_t qbits, size_t pbits)
 	FILE* f = fopen("/dev/urandom","rb");
 	do {
 		do {
-			result = fread(qCand,1,qLen,f);
-			if (result != qLen) {
+		
+			//result = fread(qCand,1,qLen,f);
+			//if (result != qLen) {
 			    // Handle fread error or incomplete read
-			}
-			//fread(qCand,1,qLen,f);
+			//}
+			fread(qCand,1,qLen,f);
 			BYTES2Z(q,qCand,qLen);
 		} while (!ISPRIME(q));
 		/* now try to get p */
@@ -172,6 +173,12 @@ int initFromScratch(size_t qbits, size_t pbits)
  * NOTE: init or initFromScratch must have been called first. */
 int dhGen(mpz_t sk, mpz_t pk)
 {
+mpz_init(sk);
+printf("sk122: ");
+mpz_out_str(stdout, 10, sk);  // Print mpz_t as a decimal string
+printf("\n");
+mpz_out_str(stdout, 10, pk);  // Print mpz_t as a decimal string
+printf("\n");
 	FILE* f = fopen("/dev/urandom","rb");
 	if (!f) {
 		fprintf(stderr, "Failed to open /dev/urandom\n");
@@ -179,15 +186,43 @@ int dhGen(mpz_t sk, mpz_t pk)
 	}
 	size_t buflen = qLen + 32; /* read extra to get closer to uniform distribution */
 	unsigned char* buf = malloc(buflen);
-	result = fread(buf,1,buflen,f);
-	if (result != qLen) {
-	    // Handle fread error or incomplete read
+	if (buf == NULL) {
+	    fprintf(stderr, "Failed to allocate memory\n");
+	    return -1;
 	}
+	result = fread(buf,1,buflen,f);
+	if (result != buflen) {
+    // Handle fread error or incomplete read
+    free(buf);  // Free the allocated memory before returning
+    fclose(f);
+    return -1;
+}
+printf("d");
 	//fread(buf,1,buflen,f);
 	fclose(f);
 	NEWZ(a);
 	BYTES2Z(a,buf,buflen);
+	if (mpz_cmp_ui(q, 0) == 0) {
+    fprintf(stderr, "Error: Attempted division by zero.\n");
+    // Handle the error or exit the program as needed
+}
+else {
+printf("seems good");
+}
+printf("Before mpz_moddd:\n");
+printf("sk: ");
+mpz_out_str(stdout, 10, sk);
+printf("\na: ");
+mpz_out_str(stdout, 10, a);
+printf("\nq: ");
+mpz_out_str(stdout, 10, q);
+printf("\n");
 	mpz_mod(sk,a,q);
+	
+	printf("After mpz_mod:\n");
+printf("sk: ");
+mpz_out_str(stdout, 10, sk);
+printf("\n");
 	mpz_powm(pk,g,sk,p);
 	return 0;
 }
