@@ -3,8 +3,6 @@
 #include <gmp.h>
 #include <string.h>
 #include <stdlib.h>
-//#include "handshake.h"
-#include "dh.h"
 
 // Define the size of the shared secret key
 #define KEY_SIZE 128
@@ -46,7 +44,7 @@ void handshakeProtocol() {
     } else {
         printf("Handshake failed!\n");
     }
-
+return ;
     // Clean up resources
     mpz_clears(aliceSecretKey, alicePublicKey, bobSecretKey, bobPublicKey, NULL);
 }

@@ -10,8 +10,15 @@
 #include "dh.h"
 #include "keys.h"
 
+#include <stdio.h>
+#include <gmp.h>
+#include <string.h>
+#include <stdlib.h>
+
+
 // for generating key
 #include <openssl/pem.h>
+#include <assert.h>
 #include <openssl/x509.h>
 
 
@@ -58,7 +65,9 @@ int generateKeyPair(struct dhKey* k) {
     // Convert the generated key to strings
     BIO *bio = BIO_new(BIO_s_mem());
     PEM_write_bio_PrivateKey(bio, pkey, NULL, NULL, 0, 0, NULL);
-    BIO_get_mem_data(bio, &k->SK, NULL);
+//    BIO_get_mem_data(bio, &k->SK, NULL); replaced to run on my ssl version
+    BIO_ctrl(bio, BIO_CTRL_INFO, 0, (char*)&k->SK);
+
     BIO_free_all(bio);
 
     bio = BIO_new(BIO_s_mem());
@@ -220,13 +229,26 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	if (isclient) {
-		initClientNet(hostname, port);
-		performHandshakeClient();
-	    } else {
-		initServerNet(port);
-		performHandshakeServer();
-	 }
+	if (initParamsFromFile("params", q, p, g) != 0) {
+	    fprintf(stderr, "could not read DH params from file 'params'\n");
+	    return 1;
+	}
+	
+	// Perform Handshake
+    	handshakeProtocol();
+	//if (isclient) {
+	    //initClientNet(hostname, port);
+	    //struct dhKey myKey;
+	    //initKey(&myKey);
+	    //generateKeyPair(&myKey);
+	    //performHandshakeClient(&myKey);  // Pass myKey to the handshake function
+	//} else {
+	   // initServerNet(port);
+	   // struct dhKey myKey;
+	   // initKey(&myKey);
+	   // generateKeyPair(&myKey);
+	   // performHandshakeServer(&myKey);  // Pass myKey to the handshake function
+	//}
 	// define long options
 	static struct option long_opts[] = {
 		{"connect",  required_argument, 0, 'c'},

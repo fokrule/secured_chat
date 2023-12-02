@@ -76,6 +76,29 @@ int init(const char* fname)
 	pLen = pBitlen / 8 + (pBitlen % 8 != 0);
 	return 0;
 }
+/* New function to initialize parameters from a file */
+int initParamsFromFile(const char* filename, mpz_t q, mpz_t p, mpz_t g)
+{
+    FILE* f = fopen(filename, "rb");
+    if (!f) {
+        fprintf(stderr, "Could not open file '%s'\n", filename);
+        return -1;
+    }
+
+    /* Read q, p, g from the file */
+    int nvalues = gmp_fscanf(f, "q = %Zd\np = %Zd\ng = %Zd", q, p, g);
+    fclose(f);
+
+    /* Check if the read was successful */
+    if (nvalues != 3) {
+        printf("Couldn't parse parameter file\n");
+        return -1;
+    }
+
+    /* Perform additional checks if necessary */
+
+    return 0;
+}
 
 int initFromScratch(size_t qbits, size_t pbits)
 {

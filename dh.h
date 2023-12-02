@@ -49,6 +49,25 @@ int dhFinal(mpz_t sk_mine, mpz_t pk_mine, mpz_t pk_yours, unsigned char* keybuf,
  * */
 int dh3Final(mpz_t a, mpz_t A, mpz_t x, mpz_t X, mpz_t B, mpz_t Y,
 		unsigned char* keybuf, size_t buflen);
+		
+// New function declaration for initializing parameters from a file
+int initParamsFromFile(const char* filename, mpz_t q, mpz_t p, mpz_t g);
+
 #ifdef __cplusplus
 }
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
