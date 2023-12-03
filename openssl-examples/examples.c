@@ -8,6 +8,7 @@
 #include <openssl/hmac.h>
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 /* demonstrates hashing (SHA family) */
 void sha_example()

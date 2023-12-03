@@ -197,7 +197,7 @@ printf("\n");
     fclose(f);
     return -1;
 }
-printf("d");
+//printf("d");
 	//fread(buf,1,buflen,f);
 	fclose(f);
 	NEWZ(a);
@@ -207,22 +207,22 @@ printf("d");
     // Handle the error or exit the program as needed
 }
 else {
-printf("seems good");
+//printf("seems good");
 }
-printf("Before mpz_moddd:\n");
-printf("sk: ");
-mpz_out_str(stdout, 10, sk);
-printf("\na: ");
-mpz_out_str(stdout, 10, a);
-printf("\nq: ");
-mpz_out_str(stdout, 10, q);
-printf("\n");
+//printf("Before mpz_moddd:\n");
+//printf("sk: ");
+//mpz_out_str(stdout, 10, sk);
+//printf("\na: ");
+//mpz_out_str(stdout, 10, a);
+//printf("\nq: ");
+//mpz_out_str(stdout, 10, q);
+//printf("\n");
 	mpz_mod(sk,a,q);
 	
-	printf("After mpz_mod:\n");
-printf("sk: ");
-mpz_out_str(stdout, 10, sk);
-printf("\n");
+//	printf("After mpz_mod:\n");
+//printf("sk: ");
+//mpz_out_str(stdout, 10, sk);
+//printf("\n");
 	mpz_powm(pk,g,sk,p);
 	return 0;
 }
