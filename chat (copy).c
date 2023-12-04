@@ -4,9 +4,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <openssl/sha.h>
-#include <openssl/bio.h>
 #include <openssl/evp.h>
-#include <openssl/buffer.h>
 #include <openssl/hmac.h>
 #include <getopt.h>
 #include "dh.h"
@@ -23,16 +21,22 @@
 #include <openssl/pem.h>
 #include <assert.h>
 #include <openssl/x509.h>
-#define KEY_LENGTH 2048
+
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
 #endif
+#define KEY_LENGTH 2048
 
+RSA *localPrivateKey, *remotePublicKey;
 static GtkTextBuffer* tbuf; /* transcript buffer */
 static GtkTextBuffer* mbuf; /* message buffer */
 static GtkTextView*  tview; /* view for transcript */
 static GtkTextMark*   mark; /* used for scrolling to end of transcript, etc */
+
+RSA *localPrivateKey;  // Set this to the private key generated locally
+RSA *remotePublicKey;  // Set this to the public key received from the remote side
+
 
 static pthread_t trecv;     /* wait for incoming messagess and post to queue */
 void* recvMsg(void*);       /* for trecv */
@@ -47,87 +51,36 @@ void* recvMsg(void*);       /* for trecv */
 static int listensock, sockfd;
 static int isclient = 1;
 
-
-
-/* rsa encryption function start*/
-RSA *alice_private_key, *alice_public_key;
-RSA *bob_private_key, *bob_public_key;
-void generate_key_pair(RSA **private_key, RSA **public_key) {
-    *private_key = RSA_generate_key(KEY_LENGTH, RSA_F4, NULL, NULL);
-    *public_key = RSAPublicKey_dup(*private_key);
-}
-
-void encrypt_message(const char *message, const RSA *public_key, unsigned char **encrypted_message, size_t *encrypted_len) {
-    *encrypted_message = (unsigned char *)malloc(RSA_size(public_key));
-    *encrypted_len = RSA_public_encrypt(strlen(message) + 1, (const unsigned char *)message, *encrypted_message, public_key, RSA_PKCS1_OAEP_PADDING);
-}
-
-void decrypt_message(const unsigned char *encrypted_message, size_t encrypted_len, const RSA *private_key, char **decrypted_message) {
-*decrypted_message = NULL;
-printf("Encrypted Message: %s\n", encrypted_message);  // Assuming it's a string
-    printf("Encrypted Length: %zu\n", encrypted_len);
-    printf("Decrypted Message within the function1: %s\n", *decrypted_message); 
-    printf("Decrypted Message within the private_key: %s\n", private_key); 
-    *decrypted_message = (char *)malloc(RSA_size(private_key));
-    RSA_private_decrypt(encrypted_len, encrypted_message, (unsigned char *)*decrypted_message, private_key, RSA_PKCS1_OAEP_PADDING);
-    
-    printf("Decrypted Message within the function: %s\n", *decrypted_message); 
-}
-
-
-// Function to Base64 encode binary data
-char* base64_encode(const unsigned char* input, size_t length) {
-    BIO *bio, *b64;
-    BUF_MEM *bptr;
-
-    b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bio = BIO_new(BIO_s_mem());
-    BIO_push(b64, bio);
-    BIO_write(b64, input, length);
-    BIO_flush(b64);
-    BIO_get_mem_ptr(b64, &bptr);
-
-    char* buffer = (char*)malloc(bptr->length + 1);
-    memcpy(buffer, bptr->data, bptr->length);
-    buffer[bptr->length] = 0;
-
-    BIO_free_all(b64);
-
-    return buffer;
-}
-
-
-// Function to Base64 decode a string
-unsigned char* base64_decode(const char* input, size_t length, size_t* outputLength) {
-    BIO *bio, *b64;
-    size_t decodedLength = 0;
-    unsigned char* outputBuffer = NULL;
-
-    b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bio = BIO_new_mem_buf(input, length);
-    bio = BIO_push(b64, bio);
-
-    outputBuffer = (unsigned char*)malloc(length); // Max possible length
-    decodedLength = BIO_read(bio, outputBuffer, length);
-    *outputLength = decodedLength;
-
-    BIO_free_all(bio);
-
-    return outputBuffer;
-}
-
-// rsa enc funtion end  
-
-
-
-
 static void error(const char *msg)
 {
 	perror(msg);
 	exit(EXIT_FAILURE);
 }
+
+void generate_key_pair(RSA **private_key, RSA **public_key) {
+    *private_key = RSA_generate_key(KEY_LENGTH, RSA_F4, NULL, NULL);
+    *public_key = RSAPublicKey_dup(*private_key);
+}
+
+int generateKeyPair2(RSA **private_key, RSA **public_key) {
+    assert(private_key != NULL && public_key != NULL);
+
+    *private_key = RSA_generate_key(2048, RSA_F4, NULL, NULL);
+    *public_key = RSAPublicKey_dup(*private_key);
+
+    if (*private_key == NULL || *public_key == NULL) {
+        perror("Error generating key pair");
+        return -1;
+    }
+
+    return 0;
+}
+void encrypt_message(const char *message, const RSA *public_key, unsigned char **encrypted_message, size_t *encrypted_len) {
+    *encrypted_message = (unsigned char *)malloc(RSA_size(public_key));
+    *encrypted_len = RSA_public_encrypt(strlen(message) + 1, (const unsigned char *)message, *encrypted_message, public_key, RSA_PKCS1_OAEP_PADDING);
+}
+
+
 
 int generateKeyPair(struct dhKey* k) {
     assert(k);
@@ -270,15 +223,6 @@ static void tsappend(char* message, char** tagnames, int ensurenewline)
 
 static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* data */)
 {
-	
-
-    	generate_key_pair(&alice_private_key, &alice_public_key);
-    	generate_key_pair(&bob_private_key, &bob_public_key);
-    	
-    	
-    	
-    	
-    	
 	char* tags[2] = {"self",NULL};
 	tsappend("me: ",tags,0);
 	GtkTextIter mstart; /* start of message pointer */
@@ -290,40 +234,37 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	/* XXX we should probably do the actual network stuff in a different
 	 * thread and have it call this once the message is actually sent. */
 	 
-	 const char *alice_message = message;
-    unsigned char *alice_encrypted_message;
-    size_t alice_encrypted_len;
-    encrypt_message(alice_message, bob_public_key, &alice_encrypted_message, &alice_encrypted_len);
-    
-	 //printf("alice_message length: %zu\n", strlen(alice_message));
-	//printf("alice_encrypted_message length: %zu\n", alice_encrypted_len);
-	printf("alice_encrypted_message content: %s\n", alice_encrypted_message);
-	//char* base64EncodedMessage = base64_encode(alice_encrypted_message, alice_encrypted_len);
-	
-//	printf("base64EncodedMessage: %s\n", base64EncodedMessage);
+    // Encrypt the message with the recipient's public key
+    unsigned char* encryptedMessage;
+    size_t encryptedLen;
+printf("Message: %s\n", message);
 
-	//ssize_t nbytes;
-	//if ((nbytes = send(sockfd,alice_encrypted_message,alice_encrypted_len,0)) == -1)
-	//	error("send failed");
-
-
-	// sending all the encrypted messages.
-	 int remaining_bytes = alice_encrypted_len;
-  int sent_bytes = 0;
-
-  while (remaining_bytes > 0) {
-    int nbytes = send(sockfd, alice_encrypted_message + sent_bytes, remaining_bytes, 0);
-    if (nbytes == -1) {
-      error("send failed");
-      break;
-    }
-
-    sent_bytes += nbytes;
-    remaining_bytes -= nbytes;
-  }
+// Call your function to generate RSA key pair
+if (generateKeyPair2(&localPrivateKey, &remotePublicKey) == 0) {
+    // Continue with your existing code
+    encrypt_message(message, remotePublicKey, &encryptedMessage, &encryptedLen);
+    printf(encryptedMessage);
+} else {
+    // Handle key generation failure
+    printf("Key generation failed\n");
+}
 
 
+
+
+    //encrypt_message(message, remotePublicKey, &encryptedMessage, &encryptedLen);
+
+    // Send the encrypted message over the network
+	ssize_t nbytes;
+	if ((nbytes = send(sockfd,encryptedMessage,len,0)) == -1)
+		error("send failed");
+	//if ((nbytes = send(sockfd, encryptedMessage, encryptedLen, 0)) == -1)
+        	//error("send failed");
 	tsappend(message,NULL,1);
+	free(encryptedMessage);
+	// Free RSA keys when done
+	RSA_free(localPrivateKey);
+	RSA_free(remotePublicKey);
 	free(message);
 	/* clear message text and reset focus */
 	gtk_text_buffer_delete(mbuf,&mstart,&mend);
@@ -454,15 +395,16 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Failed to create update thread.\n");
 	}
 
+	RSA *alice_private_key, *alice_public_key;
+    	RSA *bob_private_key, *bob_public_key;
+
+    	generate_key_pair(&alice_private_key, &alice_public_key);
+    	generate_key_pair(&bob_private_key, &bob_public_key);
 
 	gtk_main();
 
 	shutdownNetwork();
 	return 0;
-}
-
-gboolean is_valid_utf8(const char *text, gsize len) {
-  return g_utf8_validate(text, len, NULL);
 }
 
 /* thread function to listen for new messages and post them to the gtk
@@ -486,26 +428,7 @@ void* recvMsg(void*)
 		if (m[nbytes-1] != '\n')
 			m[nbytes++] = '\n';
 		m[nbytes] = 0;
-		printf("base64EncodedMessage dec: %s\n", msg);
-		/*size_t decodedLength;
-    		unsigned char* alicedecodedMessage = base64_decode(m, nbytes, &decodedLength);
-    		printf("alice_encrypted_message content: %s\n", alicedecodedMessage);
-    		char *bob_decrypted_message;
-    		size_t alicedecodedMessageLen = strlen(alicedecodedMessage);
-
-    		decrypt_message(alicedecodedMessage, 256, bob_private_key, &bob_decrypted_message);
-    		printf("Bob received and decrypted: '%s'\n", bob_decrypted_message);*/
-    		/*gboolean text_is_valid_utf8 = is_valid_utf8(bob_decrypted_message, strlen(bob_decrypted_message));
-		if (text_is_valid_utf8) {
-		  g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
-		} else {
-		  // Handle invalid UTF-8 text
-		}*/
-		char *bob_decrypted_message;
-    		decrypt_message(msg, 256, bob_private_key, &bob_decrypted_message);
-    		printf("Bob received and decrypted: '%s'\n", &bob_decrypted_message);
-
-		//g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
+		g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
 	}
 	return 0;
 }
