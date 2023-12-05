@@ -42,5 +42,9 @@ static void sendMessage(GtkWidget* w, gpointer)
     unsigned char hmac_result[EVP_MAX_MD_SIZE];
     calculateHMAC(hmac_key, EVP_MAX_KEY_LENGTH, (const unsigned char*)message, message_len, hmac_result);
 
-   
+   // Send the HMAC along with the message
+    ssize_t nbytes;
+    if ((nbytes = send(sockfd, hmac_result, EVP_MAX_MD_SIZE, 0)) == -1)
+        error("send failed");
+        
 }
