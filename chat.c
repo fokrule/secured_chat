@@ -304,9 +304,18 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 {
 	
 
-    	generate_key_pair(&alice_private_key, &alice_public_key);
-    	generate_key_pair(&bob_private_key, &bob_public_key);
+    generate_key_pair(&alice_private_key, &alice_public_key);
+    generate_key_pair(&bob_private_key, &bob_public_key);
     	
+
+	// Generate Schnorr proof
+    SchnorrProof *deniableProof = generateSchnorrProof(deniableKeyPair, challenge);
+
+    // Send the Schnorr proof along with the message
+    ssize_t proofBytes = send(sockfd, deniableProof, sizeof(SchnorrProof), 0);
+    if (proofBytes == -1) {
+        error("send proof failed");
+    }
     	
     	
     	
@@ -354,12 +363,16 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
     remaining_bytes -= nbytes;
   }
 
+	// Clean up
+    freeSchnorrProof(deniableProof);
 
 	tsappend(message,NULL,1);
 	free(message);
 	/* clear message text and reset focus */
 	gtk_text_buffer_delete(mbuf,&mstart,&mend);
 	gtk_widget_grab_focus(w);
+
+
 }
 
 static gboolean shownewmessage(gpointer msg)
@@ -384,7 +397,8 @@ int main(int argc, char *argv[])
 	    fprintf(stderr, "could not read DH params from file 'params'\n");
 	    return 1;
 	}
-	
+
+	SchnorrKeyPair *deniableKeyPair = generateSchnorrKeyPair();
 	// Perform Handshake
     	handshakeProtocol();
 	//if (isclient) {
@@ -407,6 +421,11 @@ int main(int argc, char *argv[])
 		{"port",     required_argument, 0, 'p'},
 		{"help",     no_argument,       0, 'h'},
 		{0,0,0,0}
+
+	// Clean up
+    freeSchnorrKeyPair(deniableKeyPair);
+
+    
 	};
 	// process options:
 	char c;
@@ -500,7 +519,13 @@ gboolean is_valid_utf8(const char *text, gsize len) {
 /* thread function to listen for new messages and post them to the gtk
  * main loop for processing: */
 void* recvMsg(void*)
-{
+{	
+
+
+	size_t maxlen = sizeof(SchnorrProof);
+    SchnorrProof deniableProof;
+
+
 	size_t maxlen = 512;
 	char msg[maxlen+2]; /* might add \n and \0 */
 	ssize_t nbytes;
@@ -540,4 +565,27 @@ void* recvMsg(void*)
 		//g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
 	}
 	return 0;
+
+
+	while (1) {
+        // Receive the Schnorr proof
+        ssize_t proofBytes = recv(sockfd, &deniableProof, maxlen, 0);
+        if (proofBytes == -1) {
+            error("recv proof failed");
+        }
+
+        // Verify the Schnorr proof
+        int verificationResult = verifySchnorrProof(deniableKeyPair, challenge, &deniableProof);
+        if (!verificationResult) {
+            fprintf(stderr, "Deniable authentication failed.\n");
+        }
+
+        
+
+        // Clean up
+        freeSchnorrProof(&deniableProof);
+
+       
+    }
+
 }
