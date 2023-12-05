@@ -12,6 +12,8 @@
 #include "dh.h"
 #include "keys.h"
 #include "handshake.h"
+#include <openssl/bn.h>
+
 
 //git commit
 
@@ -35,6 +37,34 @@ static GtkTextBuffer* tbuf; /* transcript buffer */
 static GtkTextBuffer* mbuf; /* message buffer */
 static GtkTextView*  tview; /* view for transcript */
 static GtkTextMark*   mark; /* used for scrolling to end of transcript, etc */
+
+// Structure to hold public and private keys
+typedef struct {
+    BIGNUM *p;
+    BIGNUM *q;
+    BIGNUM *g;
+    BIGNUM *x; // private key
+    BIGNUM *y; // public key
+} SchnorrKeyPair;
+
+// Schnorr protocol parameters
+typedef struct {
+    BIGNUM *r;
+    BIGNUM *c;
+} SchnorrProof;
+
+SchnorrKeyPair* generateSchnorrKeyPair() {
+    // Implementation of key pair generation
+}
+
+SchnorrProof* generateSchnorrProof(const SchnorrKeyPair *keyPair, const BIGNUM *challenge) {
+    // Implementation of proof generation
+}
+
+int verifySchnorrProof(const SchnorrKeyPair *keyPair, const BIGNUM *challenge, const SchnorrProof *proof) {
+    // Implementation of proof verification
+}
+
 
 static pthread_t trecv;     /* wait for incoming messagess and post to queue */
 void* recvMsg(void*);       /* for trecv */
