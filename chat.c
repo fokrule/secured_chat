@@ -63,7 +63,6 @@ void encrypt_message(const char *message, const RSA *public_key, unsigned char *
 }
 
 void decrypt_message(const unsigned char *encrypted_message, size_t encrypted_len, const RSA *private_key, char **decrypted_message) {
-*decrypted_message = NULL;
 printf("Encrypted Message: %s\n", encrypted_message);  // Assuming it's a string
     printf("Encrypted Length: %zu\n", encrypted_len);
     printf("Decrypted Message within the function1: %s\n", *decrypted_message); 
@@ -74,49 +73,6 @@ printf("Encrypted Message: %s\n", encrypted_message);  // Assuming it's a string
     printf("Decrypted Message within the function: %s\n", *decrypted_message); 
 }
 
-
-// Function to Base64 encode binary data
-char* base64_encode(const unsigned char* input, size_t length) {
-    BIO *bio, *b64;
-    BUF_MEM *bptr;
-
-    b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bio = BIO_new(BIO_s_mem());
-    BIO_push(b64, bio);
-    BIO_write(b64, input, length);
-    BIO_flush(b64);
-    BIO_get_mem_ptr(b64, &bptr);
-
-    char* buffer = (char*)malloc(bptr->length + 1);
-    memcpy(buffer, bptr->data, bptr->length);
-    buffer[bptr->length] = 0;
-
-    BIO_free_all(b64);
-
-    return buffer;
-}
-
-
-// Function to Base64 decode a string
-unsigned char* base64_decode(const char* input, size_t length, size_t* outputLength) {
-    BIO *bio, *b64;
-    size_t decodedLength = 0;
-    unsigned char* outputBuffer = NULL;
-
-    b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bio = BIO_new_mem_buf(input, length);
-    bio = BIO_push(b64, bio);
-
-    outputBuffer = (unsigned char*)malloc(length); // Max possible length
-    decodedLength = BIO_read(bio, outputBuffer, length);
-    *outputLength = decodedLength;
-
-    BIO_free_all(bio);
-
-    return outputBuffer;
-}
 
 // rsa enc funtion end  
 
@@ -277,7 +233,7 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
     	
     	
     	
-    	
+    	printf("alice_encrypted_message bobbbbb: %s\n", bob_private_key);
     	
 	char* tags[2] = {"self",NULL};
 	tsappend("me: ",tags,0);
@@ -501,9 +457,9 @@ void* recvMsg(void*)
 		} else {
 		  // Handle invalid UTF-8 text
 		}*/
-		char *bob_decrypted_message;
-    		decrypt_message(msg, 256, bob_private_key, &bob_decrypted_message);
-    		printf("Bob received and decrypted: '%s'\n", &bob_decrypted_message);
+		//char *bob_decrypted_message;
+    		//decrypt_message(msg, 256, bob_private_key, &bob_decrypted_message);
+    		//printf("Bob received and decrypted: '%s'\n", &bob_decrypted_message);
 
 		//g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
 	}
