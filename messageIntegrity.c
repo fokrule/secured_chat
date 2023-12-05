@@ -36,7 +36,11 @@ static void sendMessage(GtkWidget* w, gpointer)
     unsigned char hmac_key[EVP_MAX_KEY_LENGTH];
     generateHMACKey(hmac_key, EVP_MAX_KEY_LENGTH);
 
-    
+    // Calculate HMAC of the message
+    unsigned char* message = gtk_text_buffer_get_text(mbuf, &mstart, &mend, 1);
+    size_t message_len = g_utf8_strlen(message, -1);
+    unsigned char hmac_result[EVP_MAX_MD_SIZE];
+    calculateHMAC(hmac_key, EVP_MAX_KEY_LENGTH, (const unsigned char*)message, message_len, hmac_result);
 
    
 }
