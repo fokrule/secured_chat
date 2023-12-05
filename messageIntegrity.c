@@ -26,3 +26,17 @@ int verifyHMAC(const unsigned char* key, size_t key_length, const unsigned char*
         return 0; // HMAC verification failed
     }
 }
+
+// Modify the sendMessage function to include HMAC
+static void sendMessage(GtkWidget* w, gpointer)
+{
+   
+
+    // Generate a random secret key for HMAC
+    unsigned char hmac_key[EVP_MAX_KEY_LENGTH];
+    generateHMACKey(hmac_key, EVP_MAX_KEY_LENGTH);
+
+    
+
+   
+}
