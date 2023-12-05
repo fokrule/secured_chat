@@ -13,3 +13,16 @@ void generateHMACKey(unsigned char* key, size_t key_length) {
 void calculateHMAC(const unsigned char* key, size_t key_length, const unsigned char* message, size_t message_length, unsigned char* hmac_result) {
     HMAC(EVP_sha256(), key, key_length, message, message_length, hmac_result, NULL);
 }
+
+// Function to verify HMAC of a message
+int verifyHMAC(const unsigned char* key, size_t key_length, const unsigned char* message, size_t message_length, const unsigned char* received_hmac) {
+    unsigned char calculated_hmac[EVP_MAX_MD_SIZE];
+    calculateHMAC(key, key_length, message, message_length, calculated_hmac);
+
+    // Compare the calculated HMAC with the received HMAC
+    if (memcmp(calculated_hmac, received_hmac, EVP_MAX_MD_SIZE) == 0) {
+        return 1; // HMAC verification successful
+    } else {
+        return 0; // HMAC verification failed
+    }
+}
