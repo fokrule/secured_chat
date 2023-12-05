@@ -8,3 +8,8 @@ void generateHMACKey(unsigned char* key, size_t key_length) {
         exit(EXIT_FAILURE);
     }
 }
+
+// Function to calculate HMAC of a message using a key
+void calculateHMAC(const unsigned char* key, size_t key_length, const unsigned char* message, size_t message_length, unsigned char* hmac_result) {
+    HMAC(EVP_sha256(), key, key_length, message, message_length, hmac_result, NULL);
+}
