@@ -17,7 +17,7 @@
 #include <gmp.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <openssl/bn.h>
 
 // for generating key
 #include <openssl/pem.h>
@@ -28,6 +28,9 @@
 #ifndef PATH_MAX
 #define PATH_MAX 1024
 #endif
+
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations" // was getting a lot depricitaed message
+
 
 static GtkTextBuffer* tbuf; /* transcript buffer */
 static GtkTextBuffer* mbuf; /* message buffer */
@@ -52,29 +55,32 @@ static int isclient = 1;
 /* rsa encryption function start*/
 RSA *alice_private_key, *alice_public_key;
 RSA *bob_private_key, *bob_public_key;
+
+typedef struct {
+    unsigned char* data;
+    int length;
+} EncryptedData;
+
+// generate key
 void generate_key_pair(RSA **private_key, RSA **public_key) {
     *private_key = RSA_generate_key(KEY_LENGTH, RSA_F4, NULL, NULL);
     *public_key = RSAPublicKey_dup(*private_key);
 }
 
+
+//encrypt message
 void encrypt_message(const char *message, const RSA *public_key, unsigned char **encrypted_message, size_t *encrypted_len) {
     *encrypted_message = (unsigned char *)malloc(RSA_size(public_key));
     *encrypted_len = RSA_public_encrypt(strlen(message) + 1, (const unsigned char *)message, *encrypted_message, public_key, RSA_PKCS1_OAEP_PADDING);
 }
 
+
+//decrypt message
 void decrypt_message(const unsigned char *encrypted_message, size_t encrypted_len, const RSA *private_key, char **decrypted_message) {
-printf("Encrypted Message: %s\n", encrypted_message);  // Assuming it's a string
-    printf("Encrypted Length: %zu\n", encrypted_len);
-    printf("Decrypted Message within the function1: %s\n", *decrypted_message); 
-    printf("Decrypted Message within the private_key: %s\n", private_key); 
+
     *decrypted_message = (char *)malloc(RSA_size(private_key));
     RSA_private_decrypt(encrypted_len, encrypted_message, (unsigned char *)*decrypted_message, private_key, RSA_PKCS1_OAEP_PADDING);
-    
-    printf("Decrypted Message within the function: %s\n", *decrypted_message); 
 }
-
-
-// rsa enc funtion end  
 
 
 
@@ -153,7 +159,6 @@ static int initClientNet(char* hostname, int port)
 	if (sockfd < 0)
 		error("ERROR opening socket");
 	server = gethostbyname(hostname);
-	//server = gethostbyname("10.0.2.15");
 	if (server == NULL) {
 		fprintf(stderr,"ERROR, no such host\n");
 		exit(0);
@@ -224,17 +229,52 @@ static void tsappend(char* message, char** tagnames, int ensurenewline)
 	gtk_text_buffer_delete_mark(tbuf,mark);
 }
 
+
+unsigned char* rsaEncryptText(unsigned char* message) {
+
+	printf("Original message: %s\n", message);
+    // Read public key
+    FILE *pubKeyFile = fopen("public_key.pem", "rb");
+    RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+    fclose(pubKeyFile);
+
+    // Read private key
+    FILE *privKeyFile = fopen("private_key.pem", "rb");
+    RSA *privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
+    fclose(privKeyFile);
+
+    // Message to encrypt
+    //const char *message = "Hello, RSA! How are you doing ";
+
+    // Encryption
+    unsigned char *encrypted = (unsigned char*)malloc(RSA_size(publicKey));
+    int encryptedLength = RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
+
+	//result.data = encrypted;
+	//result.length = encryptedLength;
+    // Decryption
+    unsigned char decrypted[256];
+    int decryptedLength = RSA_private_decrypt(encryptedLength, encrypted, decrypted, privateKey, RSA_PKCS1_PADDING);
+
+    
+
+    // Clean up
+    RSA_free(publicKey);
+    RSA_free(privateKey);
+
+    return encrypted;
+}
+
+
 static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* data */)
 {
 	
-
+	// generate key
     	generate_key_pair(&alice_private_key, &alice_public_key);
     	generate_key_pair(&bob_private_key, &bob_public_key);
     	
     	
-    	
-    	printf("alice_encrypted_message bobbbbb: %s\n", bob_private_key);
-    	
+    //char* encrypted = rsaEncryptText("HIIIII");	
 	char* tags[2] = {"self",NULL};
 	tsappend("me: ",tags,0);
 	GtkTextIter mstart; /* start of message pointer */
@@ -246,37 +286,29 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	/* XXX we should probably do the actual network stuff in a different
 	 * thread and have it call this once the message is actually sent. */
 	 
-	 const char *alice_message = message;
-    unsigned char *alice_encrypted_message;
-    size_t alice_encrypted_len;
-    encrypt_message(alice_message, bob_public_key, &alice_encrypted_message, &alice_encrypted_len);
-    
-	 //printf("alice_message length: %zu\n", strlen(alice_message));
-	//printf("alice_encrypted_message length: %zu\n", alice_encrypted_len);
-	printf("alice_encrypted_message content: %s\n", alice_encrypted_message);
-	//char* base64EncodedMessage = base64_encode(alice_encrypted_message, alice_encrypted_len);
-	
-//	printf("base64EncodedMessage: %s\n", base64EncodedMessage);
+	 char* encrypted = rsaEncryptText("ttt");
+	 printf("Original message: %s\n", encrypted);
+	const char *alice_message = message;
+     	unsigned char *alice_encrypted_message;
+    	size_t alice_encrypted_len;
+    	encrypt_message(alice_message, bob_public_key, &alice_encrypted_message, &alice_encrypted_len);
 
-	//ssize_t nbytes;
-	//if ((nbytes = send(sockfd,alice_encrypted_message,alice_encrypted_len,0)) == -1)
-	//	error("send failed");
-
+	//char* encrypted = rsaEncryptText(message);
 
 	// sending all the encrypted messages.
 	 int remaining_bytes = alice_encrypted_len;
-  int sent_bytes = 0;
+	 int sent_bytes = 0;
 
-  while (remaining_bytes > 0) {
-    int nbytes = send(sockfd, alice_encrypted_message + sent_bytes, remaining_bytes, 0);
-    if (nbytes == -1) {
-      error("send failed");
-      break;
-    }
+	 while (remaining_bytes > 0) {
+	    int nbytes = send(sockfd, alice_encrypted_message + sent_bytes, remaining_bytes, 0);
+	    if (nbytes == -1) {
+	      error("send failed");
+	      break;
+	    }
 
-    sent_bytes += nbytes;
-    remaining_bytes -= nbytes;
-  }
+	    sent_bytes += nbytes;
+	    remaining_bytes -= nbytes;
+	 }
 
 
 	tsappend(message,NULL,1);
@@ -297,6 +329,112 @@ static gboolean shownewmessage(gpointer msg)
 	return 0;
 }
 
+
+// palying with rsa keys 
+
+
+RSA *generate_rsa_key_pair_custom() {
+    // Create an RSA key pair structure
+    RSA *rsa_key = RSA_new();
+
+    // Generate the RSA key pair with a specified key length (e.g., 2048 bits)
+    RSA_generate_key_ex(rsa_key, 2048, 3, NULL);
+
+    return rsa_key;
+}
+
+
+int rsaSaveIntoFile() {
+    RSA *keypair = RSA_generate_key(2048, RSA_F4, NULL, NULL);
+
+    // Print public key
+    FILE *pubKeyFile = fopen("public_key.pem", "wb");
+    PEM_write_RSA_PUBKEY(pubKeyFile, keypair);
+    fclose(pubKeyFile);
+
+    // Print private key
+    FILE *privKeyFile = fopen("private_key.pem", "wb");
+    PEM_write_RSAPrivateKey(privKeyFile, keypair, NULL, NULL, 0, NULL, NULL);
+    fclose(privKeyFile);
+
+    RSA_free(keypair);
+
+    return 0;
+}
+
+
+unsigned char* rsaEncryptText(unsigned char* message) {
+
+	printf("Original message: %s\n", message);
+    // Read public key
+    FILE *pubKeyFile = fopen("public_key.pem", "rb");
+    RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+    fclose(pubKeyFile);
+
+    // Read private key
+    FILE *privKeyFile = fopen("private_key.pem", "rb");
+    RSA *privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
+    fclose(privKeyFile);
+
+    // Message to encrypt
+    //const char *message = "Hello, RSA! How are you doing ";
+
+    // Encryption
+    unsigned char *encrypted = (unsigned char*)malloc(RSA_size(publicKey));
+    int encryptedLength = RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
+
+	//result.data = encrypted;
+	//result.length = encryptedLength;
+    // Decryption
+    unsigned char decrypted[256];
+    int decryptedLength = RSA_private_decrypt(encryptedLength, encrypted, decrypted, privateKey, RSA_PKCS1_PADDING);
+
+    
+
+    // Clean up
+    RSA_free(publicKey);
+    RSA_free(privateKey);
+
+    return encrypted;
+}
+
+
+int rsaEncryptAndDecrypt2(const unsigned char *message, int encryptedLength) {
+    // Read public key
+    printf("Original message for decryption: %s\n", message);
+    FILE *pubKeyFile = fopen("public_key.pem", "rb");
+    RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+    fclose(pubKeyFile);
+
+    // Read private key
+    FILE *privKeyFile = fopen("private_key.pem", "rb");
+    RSA *privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
+    fclose(privKeyFile);
+
+    // Message to encrypt
+    //const char *message = "Hello, RSA!";
+
+    // Encryption
+    //unsigned char encrypted[256];
+    //int encryptedLength = RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
+
+    // Decryption
+    unsigned char decrypted[256];
+    int decryptedLength = RSA_private_decrypt(256, message, decrypted, privateKey, RSA_PKCS1_PADDING);
+
+    // Print results
+    printf("Original message: %s\n", message);
+    //printf("Encrypted message2: %s\n", encrypted);
+    printf("Decrypted message: %s\n", decrypted);
+
+    // Clean up
+    RSA_free(publicKey);
+    RSA_free(privateKey);
+
+    return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
 	if (init("params") != 0) {
@@ -308,22 +446,26 @@ int main(int argc, char *argv[])
 	    fprintf(stderr, "could not read DH params from file 'params'\n");
 	    return 1;
 	}
+	rsaSaveIntoFile();
+	
+	
+	//EncryptedData encryptedData = rsaEncryptText();
+	
+	char* encrypted = rsaEncryptText("HIIIII");
+    //int encryptedLength = encryptedData.length;
+    int encryptedLength = 256;
+	//unsigned char* encryptedData = rsaEncryptAndDecrypt();
+	//printf("Decrypted message from main: %s\n", encrypted);
+	//printf();
+	rsaEncryptAndDecrypt2(encrypted,encryptedLength);
+	//RSA *rsa_key = generate_rsa_key_pair_custom();
+	//print_rsa_key_data(rsa_key);
+
 	
 	// Perform Handshake
     	handshakeProtocol();
-	//if (isclient) {
-	    //initClientNet(hostname, port);
-	    //struct dhKey myKey;
-	    //initKey(&myKey);
-	    //generateKeyPair(&myKey);
-	    //performHandshakeClient(&myKey);  // Pass myKey to the handshake function
-	//} else {
-	   // initServerNet(port);
-	   // struct dhKey myKey;
-	   // initKey(&myKey);
-	   // generateKeyPair(&myKey);
-	   // performHandshakeServer(&myKey);  // Pass myKey to the handshake function
-	//}
+	
+	
 	// define long options
 	static struct option long_opts[] = {
 		{"connect",  required_argument, 0, 'c'},
@@ -332,6 +474,7 @@ int main(int argc, char *argv[])
 		{"help",     no_argument,       0, 'h'},
 		{0,0,0,0}
 	};
+	
 	// process options:
 	char c;
 	int opt_index = 0;
@@ -417,9 +560,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-gboolean is_valid_utf8(const char *text, gsize len) {
-  return g_utf8_validate(text, len, NULL);
-}
+
 
 /* thread function to listen for new messages and post them to the gtk
  * main loop for processing: */
@@ -437,30 +578,20 @@ void* recvMsg(void*)
 			 * side has disconnected. */
 			return 0;
 		}
+		const char *msg = "Hello, Incoming Decryption failed!."; // added this as app was crashing for decrytption failour
 		char* m = malloc(maxlen+2);
 		memcpy(m,msg,nbytes);
 		if (m[nbytes-1] != '\n')
 			m[nbytes++] = '\n';
 		m[nbytes] = 0;
-		/*size_t decodedLength;
-    		unsigned char* alicedecodedMessage = base64_decode(m, nbytes, &decodedLength);
-    		printf("alice_encrypted_message content: %s\n", alicedecodedMessage);
-    		char *bob_decrypted_message;
-    		size_t alicedecodedMessageLen = strlen(alicedecodedMessage);
-
-    		decrypt_message(alicedecodedMessage, 256, bob_private_key, &bob_decrypted_message);
-    		printf("Bob received and decrypted: '%s'\n", bob_decrypted_message);*/
-    		/*gboolean text_is_valid_utf8 = is_valid_utf8(bob_decrypted_message, strlen(bob_decrypted_message));
-		if (text_is_valid_utf8) {
-		  g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
-		} else {
-		  // Handle invalid UTF-8 text
-		}*/
+		
+    		
+/*    		could't finish this part
 		//char *bob_decrypted_message;
     		//decrypt_message(msg, 256, bob_private_key, &bob_decrypted_message);
     		//printf("Bob received and decrypted: '%s'\n", &bob_decrypted_message);
-
-		//g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
+*/
+		g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
 	}
 	return 0;
 }

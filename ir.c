@@ -18,7 +18,7 @@ void encrypt_message(const char *message, const RSA *public_key, unsigned char *
 
 void decrypt_message(const unsigned char *encrypted_message, size_t encrypted_len, const RSA *private_key, char **decrypted_message) {
 
-printf("Encrypted Message: %s\n", encrypted_message);  // Assuming it's a string
+printf("Encrypted Message: %s\n", encrypted_message);  
     printf("Encrypted Length: %zu\n", encrypted_len);
     printf("Decrypted Message within the function: %s\n", *decrypted_message); 
     

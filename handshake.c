@@ -16,11 +16,10 @@
 
 
 #include "handshake.h"
-//#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 
 // Define the size of the shared secret key
 #define KEY_SIZE 128
-// Declare missing functions
 
 
 
@@ -34,27 +33,20 @@ void deriveSharedSecret(mpz_t ownSecretKey, mpz_t ownPublicKey, mpz_t otherPubli
 }
 
 void handshakeProtocol() {
-    // Alice's setup
-    // Alice's setup
+
+    // Alice
     mpz_t aliceSecretKey, alicePublicKey;
     mpz_init(aliceSecretKey);
     mpz_init(alicePublicKey);
     generateEphemeralKeyPair(aliceSecretKey, alicePublicKey);
 
-    // Bob's setup
+    // Bob's 
     mpz_t bobSecretKey, bobPublicKey;
     mpz_init(bobSecretKey);
     mpz_init(bobPublicKey);
     generateEphemeralKeyPair(bobSecretKey, bobPublicKey);
 
-    // Alice sends her public key to Bob
-    // Bob receives Alice's public key
 
- // Alice sends her public key to Bob
-    // Bob receives Alice's public key
-
-    // Bob sends his public key to Alice
-    // Alice receives Bob's public key
 
     // Both parties derive the shared secret
     unsigned char aliceSharedSecret[KEY_SIZE];
@@ -70,18 +62,6 @@ void handshakeProtocol() {
    } else {
       printf("Handshake failed!\n");
   }
-    // Clean up resources
     mpz_clears(aliceSecretKey, alicePublicKey, bobSecretKey, bobPublicKey, NULL);
-    //return ;
 }
-
-//int main() {
- // if (init("params") == 0) {
- //       printf("Successfully read DH params.\n");
-  //  }
-
-  //  handshakeProtocol();
-
-   // return 0;
-//}
 
