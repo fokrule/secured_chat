@@ -52,36 +52,6 @@ static int isclient = 1;
 
 
 
-/* rsa encryption function start*/
-RSA *alice_private_key, *alice_public_key;
-RSA *bob_private_key, *bob_public_key;
-
-typedef struct {
-    unsigned char* data;
-    int length;
-} EncryptedData;
-
-// generate key
-void generate_key_pair(RSA **private_key, RSA **public_key) {
-    *private_key = RSA_generate_key(KEY_LENGTH, RSA_F4, NULL, NULL);
-    *public_key = RSAPublicKey_dup(*private_key);
-}
-
-
-//encrypt message
-void encrypt_message(const char *message, const RSA *public_key, unsigned char **encrypted_message, size_t *encrypted_len) {
-    *encrypted_message = (unsigned char *)malloc(RSA_size(public_key));
-    *encrypted_len = RSA_public_encrypt(strlen(message) + 1, (const unsigned char *)message, *encrypted_message, public_key, RSA_PKCS1_OAEP_PADDING);
-}
-
-
-//decrypt message
-void decrypt_message(const unsigned char *encrypted_message, size_t encrypted_len, const RSA *private_key, char **decrypted_message) {
-
-    *decrypted_message = (char *)malloc(RSA_size(private_key));
-    RSA_private_decrypt(encrypted_len, encrypted_message, (unsigned char *)*decrypted_message, private_key, RSA_PKCS1_OAEP_PADDING);
-}
-
 
 
 
@@ -106,7 +76,7 @@ int generateKeyPair(struct dhKey* k) {
     // Convert the generated key to strings
     BIO *bio = BIO_new(BIO_s_mem());
     PEM_write_bio_PrivateKey(bio, pkey, NULL, NULL, 0, 0, NULL);
-//    BIO_get_mem_data(bio, &k->SK, NULL); replaced to run on my ssl version
+	//BIO_get_mem_data(bio, &k->SK, NULL); replaced to run on my ssl version
     BIO_ctrl(bio, BIO_CTRL_INFO, 0, (char*)&k->SK);
 
     BIO_free_all(bio);
@@ -232,7 +202,6 @@ static void tsappend(char* message, char** tagnames, int ensurenewline)
 
 unsigned char* rsaEncryptText(unsigned char* message) {
 
-	printf("Original message: %s\n", message);
     // Read public key
     FILE *pubKeyFile = fopen("public_key.pem", "rb");
     RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
@@ -243,22 +212,11 @@ unsigned char* rsaEncryptText(unsigned char* message) {
     RSA *privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
     fclose(privKeyFile);
 
-    // Message to encrypt
-    //const char *message = "Hello, RSA! How are you doing ";
 
     // Encryption
     unsigned char *encrypted = (unsigned char*)malloc(RSA_size(publicKey));
-    printf("encrypted from enc: %s\n", encrypted);
     int encryptedLength = RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
-	printf("length from enc: %d\n", encryptedLength);
-	//result.data = encrypted;
-	//result.length = encryptedLength;
-    // Decryption
-    /*unsigned char* decrypted = (unsigned char*)malloc(encryptedLength);
-    int decryptedLength = RSA_private_decrypt(encryptedLength, encrypted, decrypted, privateKey, RSA_PKCS1_PADDING);
 
-    printf("dencrypted from enc: %s\n", decrypted);
-*/
     // Clean up
     RSA_free(publicKey);
     RSA_free(privateKey);
@@ -268,8 +226,8 @@ unsigned char* rsaEncryptText(unsigned char* message) {
 
 
 unsigned char* rsaDecrypt(const unsigned char *message, int encryptedLength) {
+    
     // Read public key
-    //printf("Original message for decryption: %s\n", message);
     FILE *pubKeyFile = fopen("public_key.pem", "rb");
     RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
     fclose(pubKeyFile);
@@ -279,22 +237,12 @@ unsigned char* rsaDecrypt(const unsigned char *message, int encryptedLength) {
     RSA *privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
     fclose(privKeyFile);
 
-    // Message to encrypt
-    //const char *message = "Hello, RSA!";
-
-    // Encryption
-    //unsigned char encrypted[256];
-    //int encryptedLength = RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
 
     // Decryption
     unsigned char* decrypted = (unsigned char*)malloc(encryptedLength);
 
     int decryptedLength = RSA_private_decrypt(encryptedLength, message, decrypted, privateKey, RSA_PKCS1_PADDING);
 
-    // Print results
-    //printf("Original message: %s\n", message);
-    //printf("Encrypted message2: %s\n", encrypted);
-    printf("Decrypted message from decrypt: %s\n", decrypted);
 
     // Clean up
     RSA_free(publicKey);
@@ -309,8 +257,7 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
     RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
     fclose(pubKeyFile);
     	
-    	
-    //char* encrypted = rsaEncryptText("HIIIII");	
+    		
 	char* tags[2] = {"self",NULL};
 	tsappend("me: ",tags,0);
 	GtkTextIter mstart; /* start of message pointer */
@@ -323,54 +270,15 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	 * thread and have it call this once the message is actually sent. */
 	 
 	 char* encrypted = rsaEncryptText(message);
-	 //size_t length = strlen(encrypted); // Get the length of the encrypted text
 	 int length = RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
 
-	// Print the raw encrypted data for debugging
-   printf("Original encrypted message: ");
-   for (size_t i = 0; i < length; ++i) {
-      printf("%02X ", (unsigned char)encrypted[i]);
-   }
-   printf("\n");
-	printf("Original encrypted length: %d\n", length);
 
 	ssize_t nbytes;
 	if ((nbytes = send(sockfd, encrypted, length, 0)) == -1) {
 	  error("send failed");
-	} else {
-	  printf("Sent %d bytes.\n", nbytes);
-	}
+	} 
 	
 	char* d = rsaDecrypt(encrypted, length);
-
-      // Print the decrypted data for debugging
-      printf("Decrypted message in send: '%s'\n", d);
-	/*const char *alice_message = message;
-     	unsigned char *alice_encrypted_message;
-    	size_t alice_encrypted_len;
-    	encrypt_message(alice_message, bob_public_key, &alice_encrypted_message, &alice_encrypted_len);
-
-	//char* encrypted = rsaEncryptText(message);
-*/
-	
-
-	
-	/*
-	// sending all the encrypted messages.
-	 int remaining_bytes = alice_encrypted_len;
-	 int sent_bytes = 0;
-
-	 while (remaining_bytes > 0) {
-	    int nbytes = send(sockfd, encrypted + sent_bytes, remaining_bytes, 0);
-	    if (nbytes == -1) {
-	      error("send failed");
-	      break;
-	    }
-
-	    sent_bytes += nbytes;
-	    remaining_bytes -= nbytes;
-	 }
-	*/
 
 	tsappend(message,NULL,1);
 	free(message);
@@ -394,17 +302,6 @@ static gboolean shownewmessage(gpointer msg)
 // palying with rsa keys 
 
 
-RSA *generate_rsa_key_pair_custom() {
-    // Create an RSA key pair structure
-    RSA *rsa_key = RSA_new();
-
-    // Generate the RSA key pair with a specified key length (e.g., 2048 bits)
-    RSA_generate_key_ex(rsa_key, 2048, 3, NULL);
-
-    return rsa_key;
-}
-
-
 int rsaSaveIntoFile() {
     RSA *keypair = RSA_generate_key(2048, RSA_F4, NULL, NULL);
 
@@ -422,43 +319,7 @@ int rsaSaveIntoFile() {
 
     return 0;
 }
-/*
 
-unsigned char* rsaEncryptText(unsigned char* message) {
-
-	printf("Original message: %s\n", message);
-    // Read public key
-    FILE *pubKeyFile = fopen("public_key.pem", "rb");
-    RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
-    fclose(pubKeyFile);
-
-    // Read private key
-    FILE *privKeyFile = fopen("private_key.pem", "rb");
-    RSA *privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
-    fclose(privKeyFile);
-
-    // Message to encrypt
-    //const char *message = "Hello, RSA! How are you doing ";
-
-    // Encryption
-    unsigned char *encrypted = (unsigned char*)malloc(RSA_size(publicKey));
-    int encryptedLength = RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
-
-	//result.data = encrypted;
-	//result.length = encryptedLength;
-    // Decryption
-    unsigned char decrypted[256];
-    int decryptedLength = RSA_private_decrypt(encryptedLength, encrypted, decrypted, privateKey, RSA_PKCS1_PADDING);
-
-    
-
-    // Clean up
-    RSA_free(publicKey);
-    RSA_free(privateKey);
-
-    return encrypted;
-}
-*/
 
 
 
@@ -474,24 +335,9 @@ int main(int argc, char *argv[])
 	    return 1;
 	}
 	rsaSaveIntoFile();
-	
-	
-	//EncryptedData encryptedData = rsaEncryptText();
-	
-	char* encrypted = rsaEncryptText("HIIIII");
-    //int encryptedLength = encryptedData.length;
-    int encryptedLength = 256;
-	//unsigned char* encryptedData = rsaDecrypt();
-	//printf("Decrypted message from main: %s\n", encrypted);
-	//printf();
-	char * d = rsaDecrypt(encrypted,encryptedLength);
-	printf("Decrypted message from main: '%s'\n", d);
-	//RSA *rsa_key = generate_rsa_key_pair_custom();
-	//print_rsa_key_data(rsa_key);
 
-	
 	// Perform Handshake
-    	handshakeProtocol();
+   	handshakeProtocol();
 	
 	
 	// define long options
@@ -607,40 +453,16 @@ void* recvMsg(void*)
 			return 0;
 		}
 		
-		printf("Received encrypted message length: %zd\n", nbytes);
-
-      // Print the raw encrypted data for debugging
-      printf("Received encrypted message: ");
-      for (ssize_t i = 0; i < nbytes; ++i) {
-         printf("%02X ", (unsigned char)msg[i]);
-      }
-      printf("\n");
 
       char* decryptedMessage = rsaDecrypt(msg, nbytes);
 
-      // Print the decrypted data for debugging
-      printf("Decrypted message from recv: '%s'\n", decryptedMessage);
-
-      // Don't forget to free the memory allocated by rsaDecrypt
-      //free(d);
-		/*printf("Bob received: %s\n", msg);
-		size_t receivedLength = strlen(msg); 
-		printf("Bob received length: %d\n", nbytes);
-		char* d = rsaDecrypt(msg,nbytes);
-		printf("Bob received and decrypted: '%s'\n", d);
-		const char *msg = "Hello, Incoming Decryption failed!."; // added this as app was crashing for decrytption failour*/
+      
 		char* m = malloc(maxlen+2);
 		memcpy(m,decryptedMessage,nbytes);
 		if (m[nbytes-1] != '\n')
 			m[nbytes++] = '\n';
 		m[nbytes] = 0;
 		
-    		
-/*    		could't finish this part
-		//char *bob_decrypted_message;
-    		//decrypt_message(msg, 256, bob_private_key, &bob_decrypted_message);
-    		//printf("Bob received and decrypted: '%s'\n", &bob_decrypted_message);
-*/
 		g_main_context_invoke(NULL,shownewmessage,(gpointer)m);
 	}
 	return 0;
