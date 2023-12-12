@@ -190,58 +190,16 @@
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">Computer Security Project: Secure(?) Chat</h1>
+<h1 class="title">Computer Security Secured Chat Project</h1>
 <p class="author"></p>
 </header>
-<h2 id="due-monday-decmeber-4th-1159pm"><em>Due:</em> Monday, Decmeber 4th @ 11:59pm</h2>
-<h2 id="synopsis">Synopsis</h2>
+<h2 id="synopsis">Steps</h2>
 <p>Write a chat program in C that provides:</p>
 <ul>
 <li>Authentication of correspondents</li>
 <li>Message secrecy (encryption)</li>
 <li>Message integrity (MACs)</li>
 </ul>
-<p>Given that this program processes formatted input from a network, you should naturally focus on software security as well.</p>
-<h3 id="goals-for-the-student">Goals for the student</h3>
-<ul>
-<li>Gain familiarity using cryptographic libraries (<code>openssl</code>).</li>
-<li>Experience in protocol design.</li>
-<li>Understanding various issues in network programming.</li>
-<li>How to avoid common software security issues.</li>
-</ul>
-<h2 id="important-notes">Important Notes</h2>
-<p>If you’d like, feel free to collaborate in small groups (<span class="math inline"> ≤ 3</span> members). If you do collaborate in a group, please <strong>use git</strong>. This ought to help you organize, but it will also be useful for me to make sure everyone was contributing to the project. If you have not collaborated with git much, I have some maybe helpful notes <a href="http://www-cs.ccny.cuny.edu/~wes/CSC103/scm.html#collaborate">here</a>.</p>
-<h2 id="details">Details</h2>
-<p>I’ve given you a skeleton which does very basic chat stuff: Depending on the invocation, it will listen for connections, or make one with another host. Beyond that, it just sends and receives text, displaying each message in a log window. It will be up to you to:</p>
-<ul>
-<li>Write some sort of handshake protocol to setup ephemeral keys (your protocol should have <a href="https://en.wikipedia.org/wiki/Forward_secrecy">perfect forward secrecy</a>!).</li>
-<li>Mutual authentication, using public key cryptography.</li>
-<li>After authentication, each message should be encrypted and tagged with a message authentication code. You may also want to take measures to prevent replay attacks.</li>
-</ul>
-<p>I think <a href="https://en.wikipedia.org/wiki/Ssh">SSH</a> will be a good model on which to base your protocol. In particular, don’t use PKI (public-key infrastructure, with certificates and such), and instead assume that communicating parties have already exchanged public keys. However, implementing deniable authentication would be a nice touch (and is something SSH does not provide). If you want to use 3DH, you can find an example in <code>dh-example.c</code>.</p>
-<h3 id="compiling-the-skeleton">Compiling the skeleton</h3>
-<p>You will need:</p>
-<ul>
-<li><a href="https://en.wikipedia.org/wiki/Gtk">gtk3</a> and the header files. If you are on linux/BSD, you might have to get a package like <code>gtk+3-devel</code> or similar, although some distributions (e.g. Arch Linux) will include header files in the normal package (no <code>-devel</code> needed).</li>
-<li><a href="http://www.openssl.org/">openssl</a> and headers (<code>openssl-devel</code>).</li>
-<li><a href="http://gmplib.org/">gmp</a> and its header files (<code>gmp-devel</code>).</li>
-</ul>
-<p>Running <code>make</code> should just work on most linux or BSD systems if you have all the above installed, but let me know. I’m confident you could also get this working just fine on a mac via <a href="https://brew.sh/">homebrew</a>. You should be able to get it working on Windows as well, but it might be easier to just do it in a virtual machine. If you do get it working natively on Windows, I’d be interested, so please let me know what steps were needed.</p>
-<p>Once you do have the skeleton compiled, you can run <code>./chat -h</code> and see a list of options. You should be able to test it out like this:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a>$ <span class="ex">./chat</span> -l <span class="kw">&amp;</span> <span class="fu">sleep</span> 1 <span class="kw">&amp;&amp;</span> <span class="ex">./chat</span> -c localhost <span class="kw">&amp;</span></span></code></pre></div>
-<p>Two windows should appear in a moment, connected over the loopback interface.</p>
-<h3 id="other-notes">Other notes</h3>
-<p>There is a directory <code>openssl-examples</code> that demonstrates how to get most of the functionality you’ll need from <code>openssl</code>. However, your professor decided to write his own Diffie-Hellman key exchange, as the openssl version was somehow even more obfuscated and confusing than usual. You can see the Diffie-Hellman stuff in files <code>dh.h</code>,<code>dh.c</code>, and you can see some example usage in <code>dh-example.c</code>. Note that the function <code>dhFinal(...)</code> will also do key derivation for you (transforming the Diffie-Hellman value into pseudorandom bits that you can use as keys for encryption and MACs).</p>
-<p>You might also find the following links helpful.</p>
-<ul>
-<li><a href="https://beej.us/guide/bgnet/">network programming guide</a></li>
-<li>If you ever need to manipulate <code>mpz_t</code> types, read <code>info gmp</code>. Alternatively, you can read <a href="https://gmplib.org/manual/">the manual online</a>.</li>
-</ul>
-<h2 id="submission-procedure">Submission Procedure</h2>
-<p>Have one of your group members send me your repository. If you have it hosted somewhere, you can just send a link, but if you’ve done things on your own servers, just make me an archive like this:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a>$ <span class="bu">cd</span> /path/to/your/chat/../</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>$ <span class="fu">tar</span> -czf chat.tgz chat/</span></code></pre></div>
-<p>Importantly, there should be a <code>.git/</code> folder in there containing the commit history.</p>
-<!--  links  -->
+
 </body>
 </html>
