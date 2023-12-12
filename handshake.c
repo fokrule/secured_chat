@@ -22,8 +22,6 @@
 #define KEY_SIZE 128
 
 
-
-
 void generateEphemeralKeyPair(mpz_t sk, mpz_t pk) {
     dhGen(sk, pk);
 }
