@@ -194,11 +194,13 @@
 <p class="author"></p>
 </header>
 <h2 id="synopsis">Steps</h2>
-<p>Write a chat program in C that provides:</p>
+<p>Here are the steps and details for this secured chat project:</p>
 <ul>
-<li>Authentication of correspondents</li>
-<li>Message secrecy (encryption)</li>
-<li>Message integrity (MACs)</li>
+<li>Implemented Handshake.</li>
+<li>Created RSA keys for two different users. In future development, they will share their public keys separately instead of creating them here and will use their respective private keys to decrypt messages.</li>
+<li>Each message is encrypted before sending and decrypted after receiving.</li>
+<li>Client 1 uses Client 2's public key to encrypt, and Client 2 uses Client 1's public key.</li>
+<li>Client 1 uses their own private key to decrypt messages, and Client 2 uses their own private key to decrypt.</li>
 </ul>
 
 </body>
