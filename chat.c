@@ -51,47 +51,12 @@ static int listensock, sockfd;
 static int isclient = 1;
 
 
-
-
-
-
 static void error(const char *msg)
 {
 	perror(msg);
 	exit(EXIT_FAILURE);
 }
 
-int generateKeyPair(struct dhKey* k) {
-    assert(k);
-    EVP_PKEY* pkey;
-    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
-
-    if (ctx == NULL || EVP_PKEY_keygen_init(ctx) <= 0 ||
-        EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, NID_X9_62_prime256v1) <= 0 ||
-        EVP_PKEY_keygen(ctx, &pkey) <= 0) {
-        perror("Error generating key pair");
-        return -1;
-    }
-
-    // Convert the generated key to strings
-    BIO *bio = BIO_new(BIO_s_mem());
-    PEM_write_bio_PrivateKey(bio, pkey, NULL, NULL, 0, 0, NULL);
-	//BIO_get_mem_data(bio, &k->SK, NULL); replaced to run on my ssl version
-    BIO_ctrl(bio, BIO_CTRL_INFO, 0, (char*)&k->SK);
-
-    BIO_free_all(bio);
-
-    bio = BIO_new(BIO_s_mem());
-    PEM_write_bio_PUBKEY(bio, pkey);
-    //BIO_get_mem_data(bio, &k->PK, NULL); replaced to run on my ssl version
-    BIO_ctrl(bio, BIO_CTRL_INFO, 0, (char*)&k->SK);
-    BIO_free_all(bio);
-
-    EVP_PKEY_free(pkey);
-    EVP_PKEY_CTX_free(ctx);
-
-    return 0;
-}
 
 int initServerNet(int port)
 {
@@ -202,61 +167,87 @@ static void tsappend(char* message, char** tagnames, int ensurenewline)
 
 unsigned char* rsaEncryptText(unsigned char* message) {
 
-    // Read public key
-    FILE *pubKeyFile = fopen("public_key.pem", "rb");
-    RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
-    fclose(pubKeyFile);
+	RSA *publicKey = NULL;
+	if (isclient ==1 ) {
+		// Read public key
+		FILE *pubKeyFile = fopen("public_key_client2.pem", "rb");
+		publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+		fclose(pubKeyFile);
 
-    // Read private key
-    FILE *privKeyFile = fopen("private_key.pem", "rb");
-    RSA *privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
-    fclose(privKeyFile);
-
-
-    // Encryption
-    unsigned char *encrypted = (unsigned char*)malloc(RSA_size(publicKey));
-    int encryptedLength = RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
+	}
+	else {
+		// Read public key
+		FILE *pubKeyFile = fopen("public_key_client1.pem", "rb");
+		publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+		fclose(pubKeyFile);
+	}
+    
+	unsigned char *encrypted = NULL;
+	if (publicKey != NULL) {
+    	// Encryption
+    	encrypted = (unsigned char*)malloc(RSA_size(publicKey));
+    	RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
+	} else {
+		printf("Faield to encrypt");
+	}
 
     // Clean up
     RSA_free(publicKey);
-    RSA_free(privateKey);
 
     return encrypted;
 }
 
 
 unsigned char* rsaDecrypt(const unsigned char *message, int encryptedLength) {
+
+    RSA *privateKey = NULL;
     
-    // Read public key
-    FILE *pubKeyFile = fopen("public_key.pem", "rb");
-    RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
-    fclose(pubKeyFile);
+    if (isclient ==1 ) {
 
-    // Read private key
-    FILE *privKeyFile = fopen("private_key.pem", "rb");
-    RSA *privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
-    fclose(privKeyFile);
+		// Read private key
+		FILE *privKeyFile = fopen("private_key_client1.pem", "rb");
+		privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
+		fclose(privKeyFile);
+	}
+	else {
 
+		// Read private key
+		FILE *privKeyFile = fopen("private_key_client2.pem", "rb");
+		privateKey = PEM_read_RSAPrivateKey(privKeyFile, NULL, NULL, NULL);
+		fclose(privKeyFile);
+	}
+    
+    
+    unsigned char *decrypted = NULL;
+	if (privateKey != NULL) {
+    	// Decryption
+    	decrypted = (unsigned char*)malloc(encryptedLength);
 
-    // Decryption
-    unsigned char* decrypted = (unsigned char*)malloc(encryptedLength);
-
-    int decryptedLength = RSA_private_decrypt(encryptedLength, message, decrypted, privateKey, RSA_PKCS1_PADDING);
+    	RSA_private_decrypt(encryptedLength, message, decrypted, privateKey, RSA_PKCS1_PADDING);
+	} else {
+		printf("Faield to dencrypt");
+	}
 
 
     // Clean up
-    RSA_free(publicKey);
     RSA_free(privateKey);
 
     return decrypted;
 }
 static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* data */)
 {
-	
-	FILE *pubKeyFile = fopen("public_key.pem", "rb");
-    RSA *publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
-    fclose(pubKeyFile);
-    	
+	RSA *publicKey = NULL;
+	if (isclient ==1 ) {
+		FILE *pubKeyFile = fopen("public_key_client2.pem", "rb");
+    	publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+    	fclose(pubKeyFile);
+	}
+	else {
+		FILE *pubKeyFile = fopen("public_key_client1.pem", "rb");
+    	publicKey = PEM_read_RSA_PUBKEY(pubKeyFile, NULL, NULL, NULL);
+    	fclose(pubKeyFile);
+	}	
+    
     		
 	char* tags[2] = {"self",NULL};
 	tsappend("me: ",tags,0);
@@ -265,23 +256,24 @@ static void sendMessage(GtkWidget* w /* <-- msg entry widget */, gpointer /* dat
 	gtk_text_buffer_get_start_iter(mbuf,&mstart);
 	gtk_text_buffer_get_end_iter(mbuf,&mend);
 	char* message = gtk_text_buffer_get_text(mbuf,&mstart,&mend,1);
-	size_t len = g_utf8_strlen(message,-1);
+	g_utf8_strlen(message,-1);
 	/* XXX we should probably do the actual network stuff in a different
 	 * thread and have it call this once the message is actually sent. */
 	 
-	 char* encrypted = rsaEncryptText(message);
+
+	 unsigned char* encrypted = rsaEncryptText(message);
 	 int length = RSA_public_encrypt(strlen(message) + 1, (unsigned char *)message, encrypted, publicKey, RSA_PKCS1_PADDING);
 
 
 	ssize_t nbytes;
-	if ((nbytes = send(sockfd, encrypted, length, 0)) == -1) {
+	if ((nbytes = send(sockfd, encrypted, length, 0)) == -1) { // sending entire encryoted message
 	  error("send failed");
 	} 
 	
-	char* d = rsaDecrypt(encrypted, length);
-
+	
 	tsappend(message,NULL,1);
 	free(message);
+	free(encrypted);
 	/* clear message text and reset focus */
 	gtk_text_buffer_delete(mbuf,&mstart,&mend);
 	gtk_widget_grab_focus(w);
@@ -299,24 +291,46 @@ static gboolean shownewmessage(gpointer msg)
 }
 
 
-// palying with rsa keys 
-
 
 int rsaSaveIntoFile() {
-    RSA *keypair = RSA_generate_key(2048, RSA_F4, NULL, NULL);
+
+	// client 1 key generation started
+	// for now generating clent 1 and client 2 keys together 
+	// later on, on furhter implmentation, they will share their public key and use them 
+	// to encrypt message
+	// client 1 key generation
+    RSA *keypair1 = RSA_generate_key(2048, RSA_F4, NULL, NULL);
 
     // Print public key
-    FILE *pubKeyFile = fopen("public_key.pem", "wb");
-    PEM_write_RSA_PUBKEY(pubKeyFile, keypair);
+    FILE *pubKeyFile = fopen("public_key_client1.pem", "wb");
+    PEM_write_RSA_PUBKEY(pubKeyFile, keypair1);
     fclose(pubKeyFile);
 
     // Print private key
-    FILE *privKeyFile = fopen("private_key.pem", "wb");
-    PEM_write_RSAPrivateKey(privKeyFile, keypair, NULL, NULL, 0, NULL, NULL);
+    FILE *privKeyFile = fopen("private_key_client1.pem", "wb");
+    PEM_write_RSAPrivateKey(privKeyFile, keypair1, NULL, NULL, 0, NULL, NULL);
     fclose(privKeyFile);
+    
+	// client 1 key generation end
 
-    RSA_free(keypair);
 
+	// client 2 key generation started
+	RSA *keypair2 = RSA_generate_key(2048, RSA_F4, NULL, NULL);
+
+    // Print public key
+    FILE *pubKeyFile2 = fopen("public_key_client2.pem", "wb");
+    PEM_write_RSA_PUBKEY(pubKeyFile2, keypair2);
+    fclose(pubKeyFile2);
+
+    // Print private key
+    FILE *privKeyFile2 = fopen("private_key_client2.pem", "wb");
+    PEM_write_RSAPrivateKey(privKeyFile2, keypair2, NULL, NULL, 0, NULL, NULL);
+    fclose(privKeyFile2);
+	
+	// client 2 key generation end
+
+    RSA_free(keypair1);
+	RSA_free(keypair2);
     return 0;
 }
 
@@ -453,9 +467,7 @@ void* recvMsg(void*)
 			return 0;
 		}
 		
-
-      char* decryptedMessage = rsaDecrypt(msg, nbytes);
-
+      	char* decryptedMessage = rsaDecrypt(msg, nbytes); // decrypt the message
       
 		char* m = malloc(maxlen+2);
 		memcpy(m,decryptedMessage,nbytes);
